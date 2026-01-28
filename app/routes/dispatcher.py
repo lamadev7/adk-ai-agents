@@ -1,7 +1,7 @@
 import logging
 from pydantic import BaseModel
-from fastapi import APIRouter, Request
-from app.agents.dispatcher import DispatcherAgent
+from fastapi import APIRouter, Request, Response
+from app.controllers.dispatcher import DispatcherController
 
 router = APIRouter(
     prefix="/dispatcher",
@@ -14,5 +14,5 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(request: Request):
     """Chat with the dispatcher agent."""
-    logging.info(f"Chat request: {request}")
-    return {"message": "Hello, world!"}
+    controller = DispatcherController()
+    return await controller.chat(request);
