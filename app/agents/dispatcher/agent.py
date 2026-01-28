@@ -5,6 +5,8 @@ from typing import Dict
 from google.adk.runners import Runner
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
+from app.agents.dispatcher.prompt import getDispatcherPrompt
+from app.agents.dispatcher.tools import getDispatcherLoadsTool
 
 # Singleton session service - persists across all requests
 _session_service = InMemorySessionService()
@@ -24,7 +26,8 @@ class DispatcherAgent:
         """
         self.agent_name = "dispatcher"
         self.model = "gemini-flash-latest"
-        self.description = "You are a helpful AI assistant. You provide clear, accurate, and concise responses. When you don't know something, you say so honestly."
+        self.description = "Manages dispatch load operations including creating new loads, searching/fetching loads with filters and pagination, and updating load details such as status, rates, and assignments."
+        self.instructions = getDispatcherPrompt()
 
 
         self.user = user
@@ -48,6 +51,7 @@ class DispatcherAgent:
             name=self.agent_name,
             model=self.model,
             description=self.description,
+            tools=[getDispatcherLoadsTool],
         )
 
         # running the agent
@@ -74,6 +78,10 @@ class DispatcherAgent:
                 app_name=self.agent_name,
                 user_id=user_id,
                 session_id=session_id,
+                state={
+                    "token": self.user.get("token"),
+                    "user": self.user,
+                }
             )
             
         return _session_service, session
