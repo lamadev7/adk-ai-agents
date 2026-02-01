@@ -1,6 +1,6 @@
 """
 AI Agents Package
 """
-from app.agents.dispatcher import DispatcherAgent
+from app.agents.mental_health import MentalHealthAgent
 
-__all__ = ["DispatcherAgent"]
+__all__ = ["MentalHealthAgent"]

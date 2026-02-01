@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes.dispatcher import router as dispatcher_router
+from app.routes.mental_health import router as mental_health_router
 
 async def lifespan(app: FastAPI):
     """Application startup and shutdown lifecycle"""
@@ -36,4 +36,4 @@ async def health():
     return {"status": "healthy"}
 
 # routers
-app.include_router(dispatcher_router, prefix="/api")
+app.include_router(mental_health_router, prefix="/api")

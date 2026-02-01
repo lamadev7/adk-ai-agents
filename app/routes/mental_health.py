@@ -1,10 +1,10 @@
 import logging
 from pydantic import BaseModel
 from fastapi import APIRouter, Request, Response
-from app.controllers.dispatcher import DispatcherController
+from app.controllers.mental_health import MentalHealthController
 
 router = APIRouter(
-    prefix="/dispatcher",
+    prefix="/mental-health",
     tags=["chat"],
 );
 
@@ -13,6 +13,6 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat")
 async def chat(request: Request):
-    """Chat with the dispatcher agent."""
-    controller = DispatcherController()
+    """Chat with the mental health agent."""
+    controller = MentalHealthController()
     return await controller.chat(request);

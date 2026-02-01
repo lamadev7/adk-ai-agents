@@ -2,10 +2,10 @@ import json
 import logging
 from google.genai import types
 from typing import AsyncGenerator
-from app.agents.dispatcher import DispatcherAgent
+from app.agents.mental_health import MentalHealthAgent
 from fastapi.responses import JSONResponse, StreamingResponse
 
-class DispatcherController:
+class MentalHealthController:
     def __init__(self):
         self.agent = None
 
@@ -39,7 +39,7 @@ class DispatcherController:
             content = types.Content(role="user", parts=[types.Part(text=message)])
             
             # call the agent
-            agent = DispatcherAgent(user, session_id)
+            agent = MentalHealthAgent(user, session_id)
             runner, session = await agent.get_agent()
 
             return StreamingResponse(
@@ -100,6 +100,12 @@ class DispatcherController:
 
                         elif hasattr(part, "text") and part.text and not part.text.isspace():
                             # Stream text content
+                            data = {
+                                "type": "text",
+                                "content": part.text
+                            }
+                            yield f"data: {json.dumps(data)}\n\n"
+                        else:
                             data = {
                                 "type": "text",
                                 "content": part.text

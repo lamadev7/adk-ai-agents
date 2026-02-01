@@ -2,32 +2,40 @@
 Dispatcher Agent - Basic AI Agent using Google Gemini
 """
 from typing import Dict
+
+from opik import configure 
+from opik.integrations.adk import OpikTracer 
+
 from google.adk.runners import Runner
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
-from app.agents.dispatcher.prompt import getDispatcherPrompt
-from app.agents.dispatcher.tools import getDispatcherLoadsTool
+
+from app.agents.mental_health.tools import getMentalHealthTools
+from app.agents.mental_health.prompt import getMentalHealthPrompt
 
 # Singleton session service - persists across all requests
 _session_service = InMemorySessionService()
 
-class DispatcherAgent:
+# configure opik for log tracing
+configure();
+
+class MentalHealthAgent:
     """
     Basic AI agent powered by Google Gemini.
-    Handles conversations and can be extended for task dispatching.
+    Handles conversations and can be extended for mental health related tasks.
     """
     
     def __init__(self, user: Dict, session_id: str):
         """
-        Initialize the Dispatcher Agent.
+        Initialize the Mental Health Agent.
         
         Args:
             model: The Gemini model to use
         """
-        self.agent_name = "dispatcher"
+        self.agent_name = "mental_health"
         self.model = "gemini-flash-latest"
-        self.description = "Manages dispatch load operations including creating new loads, searching/fetching loads with filters and pagination, and updating load details such as status, rates, and assignments."
-        self.instructions = getDispatcherPrompt()
+        self.description = "Manages mental health related tasks including searching for mental health information, analyzing data, and performing custom computations."
+        self.instructions = getMentalHealthPrompt()
 
 
         self.user = user
@@ -35,7 +43,7 @@ class DispatcherAgent:
     
     async def get_agent(self):
         """
-        Get the dispatcher agent.
+        Get the mental health agent.
         """
 
         user_id = self.user.get("id");
@@ -43,15 +51,32 @@ class DispatcherAgent:
         if not user_id:
             raise ValueError("User ID is required")
 
+
+        # opic tracer
+        tracer = OpikTracer(
+            name="mental_health_agent",
+            metadata={
+                "user_id": self.user.get("id"),
+                "session_id": self.session_id,
+            }
+        );
+
         # create session
         session_service, session = await self.get_session(user_id, self.session_id)
+
+        # get mental health tools
+        tools = getMentalHealthTools()
         
         # create the agent
         llm_agent = LlmAgent(
             name=self.agent_name,
             model=self.model,
             description=self.description,
-            tools=[getDispatcherLoadsTool],
+            tools=tools,
+            before_agent_callback=tracer.before_agent_callback,
+            after_agent_callback=tracer.after_agent_callback,
+            before_tool_callback=tracer.before_tool_callback,
+            after_tool_callback=tracer.after_tool_callback,
         )
 
         # running the agent
