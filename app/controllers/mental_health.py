@@ -75,18 +75,42 @@ class MentalHealthController:
 
             async for event in runner_events:
                 print(f"Event ID: {event.id}, Author: {event.author}")
-                has_specific_part = False
+                
+                # Debug: log the full event structure
+                if event.content and event.content.parts:
+                    for i, part in enumerate(event.content.parts):
+                        print(f"  Part {i}: {type(part).__name__}, attrs: {[a for a in dir(part) if not a.startswith('_')]}")
 
                 if event.content and event.content.parts:
                     for part in event.content.parts:
-                        if hasattr(part, "executable_code") and part.executable_code:
+                        # Handle function calls (tool invocations)
+                        if hasattr(part, "function_call") and part.function_call:
+                            data = {
+                                "type": "tool_call",
+                                "name": part.function_call.name,
+                                "args": dict(part.function_call.args) if part.function_call.args else {}
+                            }
+                            yield f"data: {json.dumps(data)}\n\n"
+                            print(f"  Tool call: {part.function_call.name}")
+
+                        # Handle function responses (tool results)
+                        elif hasattr(part, "function_response") and part.function_response:
+                            response_data = part.function_response.response
+                            data = {
+                                "type": "tool_response",
+                                "name": part.function_response.name,
+                                "response": response_data if isinstance(response_data, (dict, list, str)) else str(response_data)
+                            }
+                            yield f"data: {json.dumps(data)}\n\n"
+                            print(f"  Tool response: {part.function_response.name}")
+
+                        elif hasattr(part, "executable_code") and part.executable_code:
                             # Stream executable code
                             data = {
                                 "type": "code",
                                 "content": part.executable_code.code
                             }
                             yield f"data: {json.dumps(data)}\n\n"
-                            has_specific_part = True
 
                         elif hasattr(part, "code_execution_result") and part.code_execution_result:
                             # Stream code execution result
@@ -96,16 +120,9 @@ class MentalHealthController:
                                 "output": part.code_execution_result.output
                             }
                             yield f"data: {json.dumps(data)}\n\n"
-                            has_specific_part = True
 
-                        elif hasattr(part, "text") and part.text and not part.text.isspace():
-                            # Stream text content
-                            data = {
-                                "type": "text",
-                                "content": part.text
-                            }
-                            yield f"data: {json.dumps(data)}\n\n"
-                        else:
+                        elif hasattr(part, "text") and part.text and part.text.strip():
+                            # Stream text content (only if not empty/whitespace)
                             data = {
                                 "type": "text",
                                 "content": part.text
@@ -113,12 +130,13 @@ class MentalHealthController:
                             yield f"data: {json.dumps(data)}\n\n"
 
                 # Check for final response
-                if not has_specific_part and hasattr(event, "is_final_response") and event.is_final_response():
+                if hasattr(event, "is_final_response") and event.is_final_response():
                     if (
                         event.content
                         and event.content.parts
                         and hasattr(event.content.parts[0], "text")
                         and event.content.parts[0].text
+                        and event.content.parts[0].text.strip()
                     ):
                         data = {
                             "type": "final",

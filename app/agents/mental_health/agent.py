@@ -1,5 +1,5 @@
 """
-Dispatcher Agent - Basic AI Agent using Google Gemini
+Mental Health Agent - Basic AI Agent using Google Gemini
 """
 from typing import Dict
 
@@ -72,6 +72,7 @@ class MentalHealthAgent:
             name=self.agent_name,
             model=self.model,
             description=self.description,
+            instruction=self.instructions,
             tools=tools,
             before_agent_callback=tracer.before_agent_callback,
             after_agent_callback=tracer.after_agent_callback,

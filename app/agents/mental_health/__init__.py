@@ -1,5 +1,5 @@
 """
-Dispatcher Agent Package
+Mental Health Agent Package
 """
 from app.agents.mental_health.agent import MentalHealthAgent
 
