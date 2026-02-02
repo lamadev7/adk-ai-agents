@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     
     # API Keys
     GOOGLE_API_KEY: str = ""
+    
+    MCP_SERVER: str = ""
 
     class Config:
         env_file = ".env"

@@ -1,5 +1,5 @@
-from google.adk.tools import FunctionTool, ToolContext
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioServerParameters
+from settings import settings
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseConnectionParams
 
 
 def getMentalHealthTools():
@@ -11,9 +11,8 @@ def getMentalHealthTools():
     # mcp tools
     tools.append(
         MCPToolset(
-            connection_params=StdioServerParameters(
-                command="node",
-                args=['/Users/bikram/Documents/projects/ai agents/mcp/dist/main.js']
+            connection_params=SseConnectionParams(
+                url=settings.MCP_SERVER
             ),
         )
     )
