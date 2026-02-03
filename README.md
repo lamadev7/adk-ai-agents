@@ -1,6 +1,8 @@
 # AI Agent Service
 
 A multi-agent AI service built with FastAPI and Google Gemini, featuring A2A (Agent-to-Agent) protocol support.
+<img width="1111" height="468" alt="Screenshot 2026-02-03 at 23 34 00" src="https://github.com/user-attachments/assets/feaa363e-dbce-4e52-8b02-b4c4557cac07" />
+
 
 ## Project Structure
 
