@@ -12,8 +12,7 @@ A multi-agent AI service built with FastAPI and Google Gemini, featuring A2A (Ag
 ├── app/
 │   ├── server.py            # FastAPI app setup & route registration
 │   ├── routes/              # API endpoints
-│   │   ├── rule_review_agent.py
-│   │   └── billing_agent.py
+│   │   ├── route.py
 │   ├── agents/              # AI agent implementations
 │   │   └── rule_review_agent/
 │   │       ├── agent.py         # Core agent logic
@@ -92,19 +91,6 @@ app/agents/my_new_agent/
 4. **request_handler.py**: Sets up FastAPI endpoints for A2A communication
 5. **agent_card.py**: Defines agent metadata for A2A discovery
 6. **knowledge/prompts.py**: System prompts and templates
-
-## API Endpoints
-
-### Rule Review Agent
-
-- `POST /api/v1/agents/rule-review/review` - Review code
-- `GET /api/v1/agents/rule-review/rules` - Get available rules
-- `GET /api/v1/agents/rule-review/status` - Get agent status
-
-### A2A Protocol
-
-- `GET /a2a/rule-review/.well-known/agent.json` - Agent discovery
-- `POST /a2a/rule-review/tasks` - Execute A2A task
 
 ## Running Tests
 
