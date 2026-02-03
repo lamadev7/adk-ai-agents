@@ -12,6 +12,7 @@ from google.adk.sessions import InMemorySessionService
 
 from app.agents.mental_health.tools import getMentalHealthTools
 from app.agents.mental_health.prompt import getMentalHealthPrompt
+from app.agents.mental_health.sub_agents.index import getSubAgents
 
 # Singleton session service - persists across all requests
 _session_service = InMemorySessionService()
@@ -66,6 +67,9 @@ class MentalHealthAgent:
 
         # get mental health tools
         tools = getMentalHealthTools()
+
+        # sequence agent
+        sub_agents = getSubAgents();
         
         # create the agent
         llm_agent = LlmAgent(
@@ -74,6 +78,7 @@ class MentalHealthAgent:
             description=self.description,
             instruction=self.instructions,
             tools=tools,
+            sub_agents=sub_agents,
             before_agent_callback=tracer.before_agent_callback,
             after_agent_callback=tracer.after_agent_callback,
             before_tool_callback=tracer.before_tool_callback,
