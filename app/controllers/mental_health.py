@@ -1,13 +1,18 @@
 import json
 import logging
-from google.genai import types
+from google.genai import types, Client
 from typing import AsyncGenerator
 from app.agents.mental_health import MentalHealthAgent
+from app.services.conversation_service import conversation_service
 from fastapi.responses import JSONResponse, StreamingResponse
+
+logger = logging.getLogger(__name__)
+
 
 class MentalHealthController:
     def __init__(self):
         self.agent = None
+        self.client = Client()
 
     async def chat(self, request):
         try:
@@ -43,7 +48,13 @@ class MentalHealthController:
             runner, session = await agent.get_agent()
 
             return StreamingResponse(
-                self._stream_events(runner, user_id, session.id, content),
+                self._stream_events(
+                    runner=runner,
+                    user_id=user_id,
+                    session_id=session.id,
+                    content=content,
+                    user_message=message  # Pass original message for saving
+                ),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -63,9 +74,14 @@ class MentalHealthController:
         runner, 
         user_id: str, 
         session_id: str, 
-        content
+        content,
+        user_message: str
     ) -> AsyncGenerator[str, None]:
         """Stream events from the agent as Server-Sent Events."""
+        # Collect assistant response for saving to database
+        assistant_response_parts = []
+        final_response = None
+        
         try:
             runner_events = runner.run_async(
                 user_id=user_id,
@@ -123,9 +139,11 @@ class MentalHealthController:
 
                         elif hasattr(part, "text") and part.text and part.text.strip():
                             # Stream text content (only if not empty/whitespace)
+                            text_content = part.text
+                            assistant_response_parts.append(text_content)
                             data = {
                                 "type": "text",
-                                "content": part.text
+                                "content": text_content
                             }
                             yield f"data: {json.dumps(data)}\n\n"
 
@@ -138,16 +156,114 @@ class MentalHealthController:
                         and event.content.parts[0].text
                         and event.content.parts[0].text.strip()
                     ):
+                        final_response = event.content.parts[0].text.strip()
                         data = {
                             "type": "final",
-                            "content": event.content.parts[0].text.strip()
+                            "content": final_response
                         }
                         yield f"data: {json.dumps(data)}\n\n"
 
             # Send done event
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
+            # Save conversation to database after streaming completes
+            await self._save_conversation(
+                user_id=user_id,
+                session_id=session_id,
+                user_message=user_message,
+                assistant_response=final_response or "".join(assistant_response_parts)
+            )
+
         except Exception as e:
-            logging.error(f"Streaming error: {e}")
+            logger.error(f"Streaming error: {e}")
             error_data = {"type": "error", "content": str(e)}
             yield f"data: {json.dumps(error_data)}\n\n"
+
+    async def _generate_summary(self, text: str) -> str:
+        """Generate a summary of the conversation using Gemini."""
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-flash-latest",
+                contents=f"Summarize this conversation concisely between a user and a mental health assistant:\n\n{text}",
+            )
+            return response.text
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}")
+            return ""
+
+    async def _generate_embedding(self, text: str) -> list[float]:
+        """Generate an embedding for the text using Gemini."""
+        try:
+            response = self.client.models.embed_content(
+                model="text-embedding-004",
+                contents=text,
+            )
+            return response.embeddings[0].values
+        except Exception as e:
+            logger.error(f"Error generating embedding: {e}")
+            return []
+
+    async def _save_conversation(
+        self,
+        user_id: str,
+        session_id: str,
+        user_message: str,
+        assistant_response: str
+    ) -> None:
+        """
+        Save conversation (user message + assistant response) to database.
+        This runs asynchronously after streaming completes.
+        """
+        if not assistant_response or not assistant_response.strip():
+            logger.warning("No assistant response to save")
+            return
+
+        try:
+            messages = [
+                {"content": user_message, "role": "user"},
+                {"content": assistant_response.strip(), "role": "assistant"}
+            ]
+
+            result = await conversation_service.save_conversation_history(
+                user_id=user_id,
+                session_id=session_id,
+                messages=messages
+            )
+
+            if result.get("success"):
+                logger.info(
+                    f"Successfully saved conversation for user {user_id}, "
+                    f"session {session_id}"
+                )
+                
+                # Extract conversation_ids for potential embedding creation
+                saved_data = result.get("data", [])
+                if saved_data:
+                    conversation_ids = [
+                        item.get("conversation_id") 
+                        for item in saved_data 
+                        if item.get("conversation_id")
+                    ]
+                    logger.debug(f"Saved conversation IDs: {conversation_ids}")
+
+                    # Generate summary and embedding
+                    full_text = f"User: {user_message}\nAssistant: {assistant_response}"
+                    summary = await self._generate_summary(full_text)
+                    
+                    if summary:
+                        embedding = await self._generate_embedding(summary)
+                        
+                        # Save summary
+                        await conversation_service.create_conversation_summary(
+                            summary_text=summary,
+                            conversation_ids=conversation_ids,
+                            summary_embedding=embedding
+                        )
+            else:
+                logger.error(
+                    f"Failed to save conversation: {result.get('error')}"
+                )
+
+        except Exception as e:
+            # Log error but don't fail - conversation saving is non-critical
+            logger.error(f"Error saving conversation to database: {str(e)}")

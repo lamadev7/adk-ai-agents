@@ -69,7 +69,7 @@ class MentalHealthAgent:
         tools = getMentalHealthTools()
 
         # sequence agent
-        sub_agents = getSubAgents();
+        sub_agents = getSubAgents()
         
         # create the agent
         llm_agent = LlmAgent(
