@@ -1,5 +1,5 @@
 """
-Mental Health Agent - Basic AI Agent using Google Gemini
+Orthopedic Agent - Basic AI Agent using Google Gemini
 """
 from typing import Dict
 
@@ -10,8 +10,8 @@ from google.adk.runners import Runner
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
 
-from app.agents.mental_health.tools import getMentalHealthTools
-from app.agents.mental_health.prompt import getMentalHealthPrompt
+from app.agents.orthopedics.tools import getOrthopedicTools
+from app.agents.orthopedics.prompt import getOrthopedicPrompt
 
 # Singleton session service - persists across all requests
 _session_service = InMemorySessionService()
@@ -19,23 +19,23 @@ _session_service = InMemorySessionService()
 # configure opik for log tracing
 configure();
 
-class MentalHealthAgent:
+class OrthopedicAgent:
     """
     Basic AI agent powered by Google Gemini.
-    Handles conversations and can be extended for mental health related tasks.
+    Handles conversations and can be extended for orthopedic related tasks.
     """
     
     def __init__(self, user: Dict, session_id: str):
         """
-        Initialize the Mental Health Agent.
+        Initialize the Orthopedic Agent.
         
         Args:
             model: The Gemini model to use
         """
-        self.agent_name = "mental_health"
+        self.agent_name = "orthopedic"
         self.model = "gemini-flash-latest"
-        self.description = "Manages mental health related tasks including searching for mental health information, analyzing data, and performing custom computations."
-        self.instructions = getMentalHealthPrompt()
+        self.description = "Manages orthopedic related tasks including searching for orthopedic information, analyzing data, and performing custom computations."
+        self.instructions = getOrthopedicPrompt()
 
 
         self.user = user
@@ -43,7 +43,7 @@ class MentalHealthAgent:
     
     async def get_agent(self):
         """
-        Get the mental health agent.
+        Get the orthopedic agent.
         """
 
         user_id = self.user.get("id");
@@ -54,7 +54,7 @@ class MentalHealthAgent:
 
         # opic tracer
         tracer = OpikTracer(
-            name="mental_health_agent",
+            name="orthopedic_agent",
             metadata={
                 "user_id": self.user.get("id"),
                 "session_id": self.session_id,
@@ -64,9 +64,9 @@ class MentalHealthAgent:
         # create session
         session_service, session = await self.get_session(user_id, self.session_id)
 
-        # get mental health tools
-        tools = getMentalHealthTools()
-        
+        # get orthopedic tools
+        tools = getOrthopedicTools()
+
         # create the agent
         llm_agent = LlmAgent(
             name=self.agent_name,
