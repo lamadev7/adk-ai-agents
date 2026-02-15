@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes.general import router as general_router
+from app.routes.orthopedics import router as orthopedics_router
 from app.routes.mental_health import router as mental_health_router
 
 async def lifespan(app: FastAPI):
@@ -36,4 +38,6 @@ async def health():
     return {"status": "healthy"}
 
 # routers
+app.include_router(general_router, prefix="/api")
+app.include_router(orthopedics_router, prefix="/api")
 app.include_router(mental_health_router, prefix="/api")

@@ -4,7 +4,7 @@ Orthopedic Agent - Basic AI Agent using Google Gemini
 from typing import Dict
 
 from opik import configure 
-from opik.integrations.adk import OpikTracer 
+from opik.integrations.adk import OpikTracer, track_adk_agent_recursive
 
 from google.adk.runners import Runner
 from google.adk.agents import LlmAgent
@@ -41,6 +41,22 @@ class OrthopedicAgent:
         self.user = user
         self.session_id=session_id
     
+    def get_llm_agent(self):
+        """
+        Get the orthopedic LLM agent.
+        """
+
+        # get orthopedic tools
+        tools = getOrthopedicTools()
+        
+        return LlmAgent(
+            name=self.agent_name,
+            model=self.model,
+            description=self.description,
+            instruction=self.instructions,
+            tools=tools,
+        )
+
     async def get_agent(self):
         """
         Get the orthopedic agent.
@@ -51,34 +67,21 @@ class OrthopedicAgent:
         if not user_id:
             raise ValueError("User ID is required")
 
+        # create session
+        session_service, session = await self.get_session(user_id, self.session_id)
+
+        # create the agent
+        llm_agent = await self.get_llm_agent();
 
         # opic tracer
         tracer = OpikTracer(
             name="orthopedic_agent",
             metadata={
-                "user_id": self.user.get("id"),
+                "user_id": user_id,
                 "session_id": self.session_id,
             }
         );
-
-        # create session
-        session_service, session = await self.get_session(user_id, self.session_id)
-
-        # get orthopedic tools
-        tools = getOrthopedicTools()
-
-        # create the agent
-        llm_agent = LlmAgent(
-            name=self.agent_name,
-            model=self.model,
-            description=self.description,
-            instruction=self.instructions,
-            tools=tools,
-            before_agent_callback=tracer.before_agent_callback,
-            after_agent_callback=tracer.after_agent_callback,
-            before_tool_callback=tracer.before_tool_callback,
-            after_tool_callback=tracer.after_tool_callback,
-        )
+        track_adk_agent_recursive(llm_agent, tracer);
 
         # running the agent
         runner = Runner(
