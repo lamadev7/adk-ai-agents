@@ -198,6 +198,7 @@ class GeneralController:
             response = self.client.models.embed_content(
                 model="gemini-embedding-001",
                 contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=1536),
             )
             return response.embeddings[0].values
         except Exception as e:

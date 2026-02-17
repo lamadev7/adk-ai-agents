@@ -6,14 +6,17 @@ from typing import Dict
 from opik import configure
 from opik.integrations.adk import OpikTracer, track_adk_agent_recursive
 
+from google.genai import types
 from google.adk.runners import Runner
 from google.adk.agents import LlmAgent
+from google.adk.planners import BuiltInPlanner
 from google.adk.sessions import InMemorySessionService
 
 # Import specialist agents' tools and prompts
 from app.agents.orthopedics import OrthopedicAgent
 from app.agents.mental_health import MentalHealthAgent
 from app.agents.general.prompt import getOrchestratorPrompt
+from app.agents.general.tools import getConversationsListTool
 
 # Singleton session service - persists across all requests
 _session_service = InMemorySessionService()
@@ -39,7 +42,7 @@ class GeneralAgent:
             session_id: Unique session identifier
         """
         self.agent_name = "general_orchestrator"
-        self.model = "gemini-flash-latest"
+        self.model = "gemini-2.5-flash-lite"
         self.description = (
             "Main orchestrator agent that understands user health queries "
             "and routes them to the appropriate medical specialist agent."
@@ -65,6 +68,9 @@ class GeneralAgent:
         mental_health_agent = MentalHealthAgent(self.user, self.session_id);
         orthopedics_agent = OrthopedicAgent(self.user, self.session_id);
 
+        # tools
+        tools = getConversationsListTool();
+        
         # create the orchestrator agent with sub-agents
         orchestrator = LlmAgent(
             name=self.agent_name,
@@ -75,6 +81,10 @@ class GeneralAgent:
                 mental_health_agent.get_llm_agent(), 
                 orthopedics_agent.get_llm_agent()
             ],
+            generate_content_config=types.GenerateContentConfig(
+                max_output_tokens=200
+            ),
+            tools=tools
         )
 
         # opik tracer
